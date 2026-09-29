@@ -13,6 +13,7 @@ sha2 = "0.10.9"
 base64 = "0.22.1"
 tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros"], optional = true }
 reqwest = { version = "0.12.28", features = ["json"], optional = true }
+lettre = { version = "0.11.23", features = ["smtp-transport", "builder", "tokio1", "tokio1-native-tls"], optional = true }
 
 [features]
 default = ["default-client", "channel-dingtalk", "channel-feishu", "channel-telegram", "channel-discord"]
@@ -21,4 +22,4 @@ channel-dingtalk = []
 channel-feishu = []
 channel-telegram = []
 channel-discord = []
-channel-smtp = []
+channel-smtp = ["dep:lettre"]

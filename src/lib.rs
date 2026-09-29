@@ -24,20 +24,36 @@ pub fn channel_from_config(
     http: Box<dyn HttpClient>,
 ) -> Result<Box<dyn Channel>, NotifyError> {
     match config {
+        #[cfg(feature = "channel-dingtalk")]
         ChannelConfig::DingTalk { webhook_url, secret } => Ok(Box::new(
             channels::dingtalk::DingTalkChannel::new(webhook_url.clone(), secret.clone(), http),
         )),
+        #[cfg(feature = "channel-feishu")]
         ChannelConfig::Feishu { webhook_url, secret } => Ok(Box::new(
             channels::feishu::FeishuChannel::new(webhook_url.clone(), secret.clone(), http),
         )),
+        #[cfg(feature = "channel-telegram")]
         ChannelConfig::Telegram { bot_token, chat_id } => Ok(Box::new(
             channels::telegram::TelegramChannel::new(bot_token.clone(), chat_id.clone(), http),
         )),
+        #[cfg(feature = "channel-discord")]
         ChannelConfig::Discord { webhook_url } => Ok(Box::new(
             channels::discord::DiscordChannel::new(webhook_url.clone(), http),
         )),
+        #[cfg(feature = "channel-smtp")]
         ChannelConfig::Smtp { host, port, username, password, from, to } => Ok(Box::new(
             channels::smtp::SmtpChannel::new(host.clone(), *port, username.clone(), password.clone(), from.clone(), to.clone()),
         )),
+        #[allow(unreachable_patterns)]
+        _ => Err(NotifyError::ConfigParse(format!(
+            "channel '{}' is not enabled; enable the corresponding feature flag",
+            match config {
+                ChannelConfig::DingTalk { .. } => "dingtalk",
+                ChannelConfig::Feishu { .. } => "feishu",
+                ChannelConfig::Telegram { .. } => "telegram",
+                ChannelConfig::Discord { .. } => "discord",
+                ChannelConfig::Smtp { .. } => "smtp",
+            }
+        ))),
     }
 }

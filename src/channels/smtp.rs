@@ -1,21 +1,20 @@
 use async_trait::async_trait;
+use lettre::{
+    AsyncSmtpTransport, AsyncTransport, Tokio1Executor,
+    message::{Mailbox, Message as Email, SinglePart, header::ContentType},
+    transport::smtp::authentication::Credentials,
+};
 
 use crate::capability::Capabilities;
 use crate::channel::{Channel, NotifyError, SendReceipt};
-use crate::message::Message;
+use crate::message::{Message, MessageBody};
 
 pub struct SmtpChannel {
-    #[allow(dead_code)]
     host: String,
-    #[allow(dead_code)]
     port: u16,
-    #[allow(dead_code)]
     username: String,
-    #[allow(dead_code)]
     password: String,
-    #[allow(dead_code)]
     from: String,
-    #[allow(dead_code)]
     to: Vec<String>,
 }
 
@@ -30,6 +29,41 @@ impl SmtpChannel {
     ) -> Self {
         Self { host, port, username, password, from, to }
     }
+
+    fn subject_for(&self, message: &Message) -> String {
+        match &message.body {
+            MessageBody::Card { title, .. } => title.clone(),
+            MessageBody::Markdown { title: Some(title), .. } => title.clone(),
+            _ => match message.priority {
+                crate::message::Priority::Critical => "[CRITICAL] Notification".into(),
+                crate::message::Priority::High => "[HIGH] Notification".into(),
+                _ => "Notification".into(),
+            },
+        }
+    }
+
+    fn body_for(&self, message: &Message) -> String {
+        let text = match &message.body {
+            MessageBody::Text { text } => text.clone(),
+            MessageBody::Markdown { text, .. } => text.clone(),
+            MessageBody::Card { markdown, .. } => markdown.clone(),
+        };
+        if message.mentions.is_empty() {
+            return text;
+        }
+        let mentions: String = message
+            .mentions
+            .iter()
+            .map(|m| {
+                if m.is_mobile {
+                    format!("☎ {}\n", m.id)
+                } else {
+                    format!("👤 @{}\n", m.id)
+                }
+            })
+            .collect();
+        format!("{mentions}\n{text}")
+    }
 }
 
 #[async_trait]
@@ -42,14 +76,48 @@ impl Channel for SmtpChannel {
         &Self::CAPABILITIES
     }
 
-    async fn send(&self, _message: &Message) -> Result<SendReceipt, NotifyError> {
-        Err(NotifyError::Channel(
-            "smtp adapter is not yet implemented; enable a future `channel-smtp` release".into(),
-        ))
+    async fn send(&self, message: &Message) -> Result<SendReceipt, NotifyError> {
+        let from_mailbox: Mailbox = self
+            .from
+            .parse()
+            .map_err(|e| NotifyError::ChannelAuth(format!("invalid from address: {e}")))?;
+
+        let mut builder = Email::builder()
+            .from(from_mailbox)
+            .subject(self.subject_for(message));
+        for to_addr in &self.to {
+            let mailbox: Mailbox = to_addr
+                .parse()
+                .map_err(|e| NotifyError::MessageConversion(format!("invalid to address '{to_addr}': {e}")))?;
+            builder = builder.to(mailbox);
+        }
+
+        let email = builder
+            .header(ContentType::TEXT_PLAIN)
+            .singlepart(SinglePart::plain(self.body_for(message)))
+            .map_err(|e| NotifyError::MessageConversion(format!("failed to build email: {e}")))?;
+
+        let transport = AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&self.host)
+            .map_err(|e| NotifyError::ChannelAuth(format!("SMTP relay error: {e}")))?
+            .port(self.port)
+            .credentials(Credentials::new(self.username.clone(), self.password.clone()))
+            .build();
+
+        let response = transport
+            .send(email)
+            .await
+            .map_err(|e| NotifyError::Network(format!("SMTP send failed: {e}")))?;
+
+        Ok(SendReceipt {
+            channel: Self::CHANNEL_NAME.into(),
+            message_id: Some(response.message().collect::<Vec<_>>().join(" ")),
+            raw_response: Some(format!("{response:?}")),
+        })
     }
 }
 
 impl SmtpChannel {
+    const CHANNEL_NAME: &'static str = "smtp";
     const CAPABILITIES: Capabilities = Capabilities::new()
         .with_markdown()
         .with_card();
