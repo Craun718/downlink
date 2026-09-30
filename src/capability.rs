@@ -10,6 +10,12 @@ pub struct Capabilities {
     pub mention_mobile: bool,
 }
 
+impl Default for Capabilities {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Capabilities {
     pub const fn new() -> Self {
         Self {

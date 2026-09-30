@@ -23,6 +23,14 @@ pub fn channel_from_config(
     config: &ChannelConfig,
     http: Box<dyn HttpClient>,
 ) -> Result<Box<dyn Channel>, NotifyError> {
+    #[cfg(not(any(
+        feature = "channel-dingtalk",
+        feature = "channel-feishu",
+        feature = "channel-telegram",
+        feature = "channel-discord",
+    )))]
+    let _ = &http;
+
     match config {
         #[cfg(feature = "channel-dingtalk")]
         ChannelConfig::DingTalk { webhook_url, secret } => Ok(Box::new(
