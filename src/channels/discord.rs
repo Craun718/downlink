@@ -62,15 +62,13 @@ impl Channel for DiscordChannel {
             headers: vec![("Content-Type".into(), "application/json".into())],
             body: Some(self.build_payload(message)),
         };
-        let response = self.http.execute(request).await?;
-        if response.status >= 400 {
-            return Err(NotifyError::ChannelAuth(format!(
-                "discord webhook returned status {}",
-                response.status
-            )));
-        }
+        let response = self
+            .http
+            .execute(request)
+            .await?
+            .ensure_success(Self::CHANNEL_NAME)?;
         let message_id = response
-            .json()
+            .json_for(Self::CHANNEL_NAME)
             .ok()
             .and_then(|v| v.get("id").and_then(Value::as_str).map(String::from));
         Ok(SendReceipt {

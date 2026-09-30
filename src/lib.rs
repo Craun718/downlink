@@ -11,7 +11,7 @@ pub mod http;
 pub mod message;
 
 pub use capability::Capabilities;
-pub use channel::{Channel, NotifyError, SendReceipt};
+pub use channel::{Channel, ErrorKind, NotifyError, ResponseBody, SendReceipt};
 pub use config::ChannelConfig;
 pub use http::{HttpClient, HttpRequest, HttpResponse};
 pub use message::{Mention, Message, MessageBody, Priority};

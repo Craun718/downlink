@@ -109,15 +109,28 @@ impl Channel for DingTalkChannel {
             headers: vec![("Content-Type".into(), "application/json".into())],
             body: Some(payload),
         };
-        let response = self.http.execute(request).await?;
-        let body = response.json()?;
+        let response = self
+            .http
+            .execute(request)
+            .await?
+            .ensure_success(Self::CHANNEL_NAME)?;
+        let body = response.json_for(Self::CHANNEL_NAME)?;
         let success = body.get("errcode").and_then(Value::as_i64) == Some(0);
         if !success {
             let msg = body
                 .get("errmsg")
                 .and_then(Value::as_str)
                 .unwrap_or("unknown error");
-            return Err(NotifyError::Channel(msg.to_string()));
+            return Err(NotifyError::Provider {
+                channel: Self::CHANNEL_NAME.into(),
+                http_status: response.status,
+                code: body
+                    .get("errcode")
+                    .and_then(Value::as_i64)
+                    .map(|code| code.to_string()),
+                message: msg.to_string(),
+                retry_after: None,
+            });
         }
         Ok(SendReceipt {
             channel: Self::CHANNEL_NAME.into(),
