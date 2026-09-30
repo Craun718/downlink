@@ -18,6 +18,7 @@ pub enum NotifyError {
     Network(String),
     MessageConversion(String),
     Channel(String),
+    UnsupportedCapability(String),
 }
 
 impl std::fmt::Display for NotifyError {
@@ -28,6 +29,7 @@ impl std::fmt::Display for NotifyError {
             Self::Network(msg) => write!(f, "network error: {msg}"),
             Self::MessageConversion(msg) => write!(f, "message conversion error: {msg}"),
             Self::Channel(msg) => write!(f, "channel error: {msg}"),
+            Self::UnsupportedCapability(msg) => write!(f, "unsupported capability: {msg}"),
         }
     }
 }
@@ -39,4 +41,11 @@ pub trait Channel: Send + Sync {
     fn name(&self) -> &'static str;
     fn capabilities(&self) -> &Capabilities;
     async fn send(&self, message: &Message) -> Result<SendReceipt, NotifyError>;
+
+    /// Negotiate the message against this channel's capabilities, then send it.
+    /// This method preserves the existing transport-focused `send` contract.
+    async fn send_with_fallback(&self, message: &Message) -> Result<SendReceipt, NotifyError> {
+        let message = self.capabilities().try_degrade(message)?;
+        self.send(&message).await
+    }
 }

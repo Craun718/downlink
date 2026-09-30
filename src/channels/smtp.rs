@@ -27,13 +27,22 @@ impl SmtpChannel {
         from: String,
         to: Vec<String>,
     ) -> Self {
-        Self { host, port, username, password, from, to }
+        Self {
+            host,
+            port,
+            username,
+            password,
+            from,
+            to,
+        }
     }
 
     fn subject_for(&self, message: &Message) -> String {
         match &message.body {
             MessageBody::Card { title, .. } => title.clone(),
-            MessageBody::Markdown { title: Some(title), .. } => title.clone(),
+            MessageBody::Markdown {
+                title: Some(title), ..
+            } => title.clone(),
             _ => match message.priority {
                 crate::message::Priority::Critical => "[CRITICAL] Notification".into(),
                 crate::message::Priority::High => "[HIGH] Notification".into(),
@@ -86,9 +95,9 @@ impl Channel for SmtpChannel {
             .from(from_mailbox)
             .subject(self.subject_for(message));
         for to_addr in &self.to {
-            let mailbox: Mailbox = to_addr
-                .parse()
-                .map_err(|e| NotifyError::MessageConversion(format!("invalid to address '{to_addr}': {e}")))?;
+            let mailbox: Mailbox = to_addr.parse().map_err(|e| {
+                NotifyError::MessageConversion(format!("invalid to address '{to_addr}': {e}"))
+            })?;
             builder = builder.to(mailbox);
         }
 
@@ -100,7 +109,10 @@ impl Channel for SmtpChannel {
         let transport = AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&self.host)
             .map_err(|e| NotifyError::ChannelAuth(format!("SMTP relay error: {e}")))?
             .port(self.port)
-            .credentials(Credentials::new(self.username.clone(), self.password.clone()))
+            .credentials(Credentials::new(
+                self.username.clone(),
+                self.password.clone(),
+            ))
             .build();
 
         let response = transport
@@ -120,5 +132,6 @@ impl SmtpChannel {
     const CHANNEL_NAME: &'static str = "smtp";
     const CAPABILITIES: Capabilities = Capabilities::new()
         .with_markdown()
-        .with_card();
+        .with_card()
+        .with_mentions(false, true, true);
 }

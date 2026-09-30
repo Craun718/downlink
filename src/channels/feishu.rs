@@ -1,12 +1,12 @@
 use async_trait::async_trait;
 use base64::Engine;
 use hmac::{Hmac, Mac};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::Sha256;
 
 use crate::capability::Capabilities;
 use crate::channel::{Channel, NotifyError, SendReceipt};
-use crate::http::{HttpClient, HttpRequest, HttpMethod};
+use crate::http::{HttpClient, HttpMethod, HttpRequest};
 use crate::message::{Message, MessageBody};
 
 pub struct FeishuChannel {
@@ -17,7 +17,11 @@ pub struct FeishuChannel {
 
 impl FeishuChannel {
     pub fn new(webhook_url: String, secret: Option<String>, http: Box<dyn HttpClient>) -> Self {
-        Self { webhook_url, secret, http }
+        Self {
+            webhook_url,
+            secret,
+            http,
+        }
     }
 
     fn build_payload(&self, message: &Message, timestamp: &str) -> Value {
@@ -43,7 +47,8 @@ impl FeishuChannel {
             let mut mac = Hmac::<Sha256>::new_from_slice(string_to_sign.as_bytes())
                 .expect("HMAC can take key of any size");
             mac.update(b"");
-            let sign = base64::engine::general_purpose::STANDARD.encode(mac.finalize().into_bytes());
+            let sign =
+                base64::engine::general_purpose::STANDARD.encode(mac.finalize().into_bytes());
             payload["timestamp"] = json!(timestamp);
             payload["sign"] = json!(sign);
         }

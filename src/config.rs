@@ -45,14 +45,16 @@ impl ChannelConfig {
         match scheme {
             "dingtalk" => {
                 let access_token = host;
-                let webhook_url = format!("https://oapi.dingtalk.com/robot/send?access_token={access_token}");
+                let webhook_url =
+                    format!("https://oapi.dingtalk.com/robot/send?access_token={access_token}");
                 Ok(Self::DingTalk {
                     webhook_url,
                     secret: params.get("secret").cloned(),
                 })
             }
             "feishu" => {
-                let webhook_url = format!("https://open.feishu.cn/open-apis/bot/v2/hook/{host}{path}");
+                let webhook_url =
+                    format!("https://open.feishu.cn/open-apis/bot/v2/hook/{host}{path}");
                 Ok(Self::Feishu {
                     webhook_url,
                     secret: params.get("secret").cloned(),
@@ -63,25 +65,23 @@ impl ChannelConfig {
                 let chat_id = path
                     .split('/')
                     .find(|s| !s.is_empty())
-                    .ok_or_else(|| NotifyError::ConfigParse("telegram: missing chat_id in path".into()))?
+                    .ok_or_else(|| {
+                        NotifyError::ConfigParse("telegram: missing chat_id in path".into())
+                    })?
                     .to_string();
-                Ok(Self::Telegram { bot_token: bot_token.to_string(), chat_id })
+                Ok(Self::Telegram {
+                    bot_token: bot_token.to_string(),
+                    chat_id,
+                })
             }
             "discord" => {
                 let webhook_url = format!("https://discord.com/api/webhooks/{host}{path}");
                 Ok(Self::Discord { webhook_url })
             }
             "smtp" => {
-                let port = parsed
-                    .port()
-                    .unwrap_or(587);
-                let username = parsed
-                    .username()
-                    .to_string();
-                let password = parsed
-                    .password()
-                    .unwrap_or_default()
-                    .to_string();
+                let port = parsed.port().unwrap_or(587);
+                let username = parsed.username().to_string();
+                let password = parsed.password().unwrap_or_default().to_string();
                 let to: Vec<String> = params
                     .get("to")
                     .map(|v| v.split(',').map(String::from).collect())
@@ -101,7 +101,9 @@ impl ChannelConfig {
                     to,
                 })
             }
-            _ => Err(NotifyError::ConfigParse(format!("unknown channel scheme: {scheme}"))),
+            _ => Err(NotifyError::ConfigParse(format!(
+                "unknown channel scheme: {scheme}"
+            ))),
         }
     }
 

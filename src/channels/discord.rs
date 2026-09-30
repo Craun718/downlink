@@ -1,9 +1,9 @@
 use async_trait::async_trait;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::capability::Capabilities;
 use crate::channel::{Channel, NotifyError, SendReceipt};
-use crate::http::{HttpClient, HttpRequest, HttpMethod};
+use crate::http::{HttpClient, HttpMethod, HttpRequest};
 use crate::message::{Message, MessageBody};
 
 pub struct DiscordChannel {

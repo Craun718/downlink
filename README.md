@@ -35,7 +35,7 @@
 
 - **统一消息模型**：文本 / Markdown / 卡片 / @ / 优先级，与渠道无关
 - **渠道适配器 trait**：每个渠道一个 `send` 实现，按 trait 注册
-- **能力声明**：适配器声明支持的消息形态（如 webhook 渠道不支持卡片则自动降级为文本）
+- **能力声明与统一降级**：库级 `send(channel, message)` 和 `Channel::send_with_fallback` 统一协商消息能力；卡片优先降级为 Markdown，再降级为纯文本，不支持的 @ 类型会被移除。无可用正文格式时返回 `UnsupportedCapability`
 - **配置驱动**：渠道配置采用 URL schema（参考 Apprise）与 JSON 双形态，便于序列化、导入导出
 
 ### 密钥与安全

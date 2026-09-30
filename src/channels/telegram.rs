@@ -1,9 +1,9 @@
 use async_trait::async_trait;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::capability::Capabilities;
 use crate::channel::{Channel, NotifyError, SendReceipt};
-use crate::http::{HttpClient, HttpRequest, HttpMethod};
+use crate::http::{HttpClient, HttpMethod, HttpRequest};
 use crate::message::{Message, MessageBody};
 
 pub struct TelegramChannel {
@@ -14,7 +14,11 @@ pub struct TelegramChannel {
 
 impl TelegramChannel {
     pub fn new(bot_token: String, chat_id: String, http: Box<dyn HttpClient>) -> Self {
-        Self { bot_token, chat_id, http }
+        Self {
+            bot_token,
+            chat_id,
+            http,
+        }
     }
 
     fn api_url(&self) -> String {

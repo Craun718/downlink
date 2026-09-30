@@ -1,12 +1,12 @@
 use async_trait::async_trait;
 use base64::Engine;
 use hmac::{Hmac, Mac};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::Sha256;
 
 use crate::capability::Capabilities;
 use crate::channel::{Channel, NotifyError, SendReceipt};
-use crate::http::{HttpClient, HttpRequest, HttpMethod};
+use crate::http::{HttpClient, HttpMethod, HttpRequest};
 use crate::message::{Message, MessageBody};
 
 pub struct DingTalkChannel {
@@ -17,7 +17,11 @@ pub struct DingTalkChannel {
 
 impl DingTalkChannel {
     pub fn new(webhook_url: String, secret: Option<String>, http: Box<dyn HttpClient>) -> Self {
-        Self { webhook_url, secret, http }
+        Self {
+            webhook_url,
+            secret,
+            http,
+        }
     }
 
     fn signed_url(&self) -> String {
@@ -33,7 +37,11 @@ impl DingTalkChannel {
             .expect("HMAC can take key of any size");
         mac.update(string_to_sign.as_bytes());
         let sign = base64::engine::general_purpose::STANDARD.encode(mac.finalize().into_bytes());
-        format!("{}&timestamp={timestamp}&sign={}", self.webhook_url, urlencoding(&sign))
+        format!(
+            "{}&timestamp={timestamp}&sign={}",
+            self.webhook_url,
+            urlencoding(&sign)
+        )
     }
 
     fn build_payload(&self, message: &Message) -> Value {
@@ -49,8 +57,18 @@ impl DingTalkChannel {
             }),
         };
         if !message.mentions.is_empty() {
-            let mobiles: Vec<_> = message.mentions.iter().filter(|m| m.is_mobile).map(|m| m.id.clone()).collect();
-            let at_user_ids: Vec<_> = message.mentions.iter().filter(|m| !m.is_mobile).map(|m| m.id.clone()).collect();
+            let mobiles: Vec<_> = message
+                .mentions
+                .iter()
+                .filter(|m| m.is_mobile)
+                .map(|m| m.id.clone())
+                .collect();
+            let at_user_ids: Vec<_> = message
+                .mentions
+                .iter()
+                .filter(|m| !m.is_mobile)
+                .map(|m| m.id.clone())
+                .collect();
             if !mobiles.is_empty() || !at_user_ids.is_empty() {
                 payload["at"] = json!({ "atMobiles": mobiles, "atUserIds": at_user_ids });
             }
@@ -63,7 +81,9 @@ fn urlencoding(input: &str) -> String {
     let mut out = String::new();
     for byte in input.bytes() {
         match byte {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(byte as char),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(byte as char)
+            }
             _ => out.push_str(&format!("%{byte:02X}")),
         }
     }

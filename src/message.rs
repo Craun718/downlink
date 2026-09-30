@@ -44,7 +44,10 @@ impl Message {
 
     pub fn markdown(text: impl Into<String>, title: Option<String>) -> Self {
         Self {
-            body: MessageBody::Markdown { text: text.into(), title },
+            body: MessageBody::Markdown {
+                text: text.into(),
+                title,
+            },
             priority: Priority::Normal,
             mentions: Vec::new(),
         }
@@ -52,7 +55,10 @@ impl Message {
 
     pub fn card(title: impl Into<String>, markdown: impl Into<String>) -> Self {
         Self {
-            body: MessageBody::Card { title: title.into(), markdown: markdown.into() },
+            body: MessageBody::Card {
+                title: title.into(),
+                markdown: markdown.into(),
+            },
             priority: Priority::Normal,
             mentions: Vec::new(),
         }
@@ -71,7 +77,9 @@ impl Message {
     pub fn as_text(&self) -> String {
         match &self.body {
             MessageBody::Text { text } => text.clone(),
-            MessageBody::Markdown { text, .. } | MessageBody::Card { markdown: text, .. } => text.clone(),
+            MessageBody::Markdown { text, .. } | MessageBody::Card { markdown: text, .. } => {
+                text.clone()
+            }
         }
     }
 }

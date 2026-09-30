@@ -55,7 +55,9 @@ pub mod default {
 
     impl ReqwestClient {
         pub fn new() -> Self {
-            Self { inner: reqwest::Client::new() }
+            Self {
+                inner: reqwest::Client::new(),
+            }
         }
     }
 
