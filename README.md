@@ -18,13 +18,12 @@
 ### 跨平台
 
 - 编译目标覆盖：macOS、Windows、Linux、Android、iOS
-- 远期通过 WASM 支持浏览器/Electron 场景
 - 不依赖单平台 API，核心逻辑全部平台无关
 
 ### 当前渠道
 
 | 渠道 | 接入方式 | 说明 |
-|------|----------|------|
+| ------ | ---------- | ------ |
 | 钉钉 | 群机器人 Webhook | 支持加签 secret |
 | 飞书 | 自定义机器人 Webhook | 支持签名 secret |
 | Telegram | Bot API | Bot token + chat id |
@@ -82,22 +81,10 @@ let config = ChannelConfig::Telegram {
 - 不做密钥托管、云端账号体系
 - 不追求 Apprise 级别的渠道数量；优先覆盖用户高频渠道并保持每个适配器的错误语义与能力降级一致
 
-### 产物体积优化
+## 文档
 
-本库默认关闭 reqwest 的 HTTP/2 与压缩等非必要 feature，仅保留 JSON 序列化与
-native-tls。消费端可在自身 `Cargo.toml` 中加入以下 release profile 进一步缩小
-链接后的二进制体积：
-
-```toml
-[profile.release]
-lto = true
-codegen-units = 1
-strip = true
-opt-level = "z"
-panic = "abort"
-```
-
-实测效果（Bark 渠道最小示例）：默认 release 约 4.4 MB → 优化后约 1.2 MB。
+- [编译说明](docs/build.md)
+- [最小示例](docs/minimal-example.md)
 
 ## 许可
 
