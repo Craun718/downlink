@@ -17,7 +17,10 @@ use downlink::{ChannelConfig, Message, NotifyError, ReqwestClient, channel_from_
 
 #[tokio::main]
 async fn main() -> Result<(), NotifyError> {
-    let config = ChannelConfig::from_url("telegram://BOT_TOKEN/CHAT_ID")?;
+    let config = ChannelConfig::Telegram {
+        bot_token: "BOT_TOKEN".into(),
+        chat_id: "CHAT_ID".into(),
+    };
     let channel = channel_from_config(&config, Box::new(ReqwestClient::new()))?;
     let message = Message::text("Hello from downlink");
 

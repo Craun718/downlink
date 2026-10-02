@@ -2,12 +2,12 @@ mod common;
 
 use base64::Engine;
 use common::{MockHttpClient, ok_response, status_response};
-use hmac::{Hmac, Mac};
 use downlink::channels::dingtalk::DingTalkChannel;
 use downlink::channels::discord::DiscordChannel;
 use downlink::channels::feishu::FeishuChannel;
 use downlink::channels::telegram::TelegramChannel;
 use downlink::{Channel, ChannelConfig, HttpRequest, Message, NotifyError};
+use hmac::{Hmac, Mac};
 use serde_json::Value;
 use sha2::Sha256;
 
@@ -45,7 +45,7 @@ fn percent_decode(input: &str) -> String {
     String::from_utf8(out).expect("percent-decoded bytes must be UTF-8")
 }
 
-fn url_query_param<'a>(url: &'a str, key: &str) -> Option<String> {
+fn url_query_param(url: &str, key: &str) -> Option<String> {
     let query = url.split_once('?')?.1;
     query.split('&').find_map(|pair| {
         let (k, v) = pair.split_once('=')?;
@@ -293,25 +293,15 @@ async fn discord_http_error_keeps_channel_context() {
 }
 
 #[test]
-fn config_url_and_json_forms_parse_consistently() {
-    let dingtalk = ChannelConfig::from_url("dingtalk://tok123?secret=abc").unwrap();
-    assert!(matches!(
-        &dingtalk,
-        ChannelConfig::DingTalk { webhook_url, secret: Some(secret) }
-            if webhook_url.contains("access_token=tok123") && secret == "abc"
-    ));
-
-    let smtp = ChannelConfig::from_url("smtp://user:pass@smtp.example.com:465?to=a@b.com,c@d.com")
-        .unwrap();
-    assert!(matches!(
-        &smtp,
-        ChannelConfig::Smtp { host, port: 465, username, password, .. }
-            if host == "smtp.example.com" && username == "user" && password == "pass"
-    ));
-
-    let telegram =
+fn config_json_and_typed_forms_parse_consistently() {
+    let telegram = ChannelConfig::Telegram {
+        bot_token: "123:ABC".into(),
+        chat_id: "42".into(),
+    };
+    let parsed =
         ChannelConfig::from_json(r#"{"channel":"telegram","bot_token":"123:ABC","chat_id":"42"}"#)
             .unwrap();
+    assert_eq!(parsed, telegram);
     assert!(
         telegram
             .to_json()

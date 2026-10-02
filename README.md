@@ -41,27 +41,26 @@
 新通知渠道默认随 `default` feature 编译；SMTP 因依赖完整邮件客户端而保持为可选
 feature。宿主可以按渠道裁剪依赖，例如只启用 `channel-telegram`。
 
-### URL Schema 示例
+### 配置示例
 
-```text
-dingtalk://ACCESS_TOKEN?secret=SECRET
-feishu://HOOK_ID?secret=SECRET
-telegram://BOT_TOKEN/CHAT_ID
-discord://WEBHOOK_ID/WEBHOOK_TOKEN
-discord-bot://BOT_TOKEN@send?user_id=USER_ID
-smtp://user:password@smtp.example.com:465?to=a@b.com,c@d.com
-serverchan://SEND_KEY@send
-bark://DEVICE_KEY@send?server=https%3A%2F%2Fbark.example.com
-gotify://TOKEN@gotify.example.com
-qmsg://KEY@send?user_id=QQ&bot=BOT_QQ
-wxpusher://UID?app_token=APP_TOKEN
-webhook://hooks.example.com/path?header.X-Token=secret&content_type=application%2Fjson
+Rust 内使用类型化的 `ChannelConfig`：
+
+```rust
+let config = ChannelConfig::Telegram {
+    bot_token: bot_token,
+    chat_id: chat_id,
+};
 ```
 
-`bark://DEVICE_KEY@send`、`qmsg://KEY@send` 使用各自官方默认服务；
-`gotify` 需要显式提供自建服务器。`webhook` 默认使用 HTTPS，可用
-`scheme=http` 改为 HTTP；`template`/`body` 传入 JSON 模板，正文内支持
-`{title}`、`{message}`、`{content}` 与 `{priority}` 占位符。
+需要持久化或跨语言传递时，使用同一结构的 JSON 形态：
+
+```json
+{
+  "channel": "telegram",
+  "bot_token": "BOT_TOKEN",
+  "chat_id": "CHAT_ID"
+}
+```
 
 ### 架构原则
 
@@ -69,7 +68,7 @@ webhook://hooks.example.com/path?header.X-Token=secret&content_type=application%
 - **渠道适配器 trait**：每个渠道一个 `send` 实现，按 trait 注册
 - **能力声明与统一降级**：库级 `send(channel, message)` 和 `Channel::send_with_fallback` 统一协商消息能力；卡片优先降级为 Markdown，再降级为纯文本，不支持的 @ 类型会被移除。无可用正文格式时返回 `UnsupportedCapability`
 - **Markdown 纯文本降级**：由内置零依赖 crate `markdown-plain-text` 剥离常用 Markdown 语法，保留正文、链接目标和代码内容
-- **配置驱动**：渠道配置采用 URL schema（参考 Apprise）与 JSON 双形态，便于序列化、导入导出
+- **配置驱动**：渠道配置采用 Rust 类型化结构与 JSON 双形态，字段显式、便于序列化和跨语言复用
 
 ### 密钥与安全
 

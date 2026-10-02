@@ -8,7 +8,7 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Craun718/downlink"
 readme = "README.md"
-description = "One-way notification aggregation SDK with unified URL schemas"
+description = "One-way notification aggregation SDK with typed channel configuration"
 keywords = ["notification", "dingtalk", "feishu", "telegram", "discord"]
 categories = ["api-bindings"]
 

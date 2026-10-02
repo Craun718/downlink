@@ -402,65 +402,65 @@ async fn discord_bot_opens_dm_then_posts_message() {
 }
 
 #[test]
-fn new_channel_url_schemas_parse() {
+fn channel_from_config_selects_new_channels() {
     let cases = [
-        ("discord-bot://bot-token@send?user_id=42", "discord-bot"),
-        ("serverchan://send-key@send", "serverchan"),
-        ("bark://device-key@send", "bark"),
-        ("gotify://token@gotify.example.com", "gotify"),
-        ("qmsg://key@send?user_id=42&bot=10002", "qmsg"),
-        ("wxpusher://uid-1?app_token=app-token", "wxpusher"),
         (
-            "webhook://hooks.example.com/notify?source=downlink",
+            ChannelConfig::DiscordBot {
+                bot_token: "bot-token".into(),
+                user_id: "42".into(),
+            },
+            "discord-bot",
+        ),
+        (
+            ChannelConfig::ServerChan {
+                send_key: "send-key".into(),
+            },
+            "serverchan",
+        ),
+        (
+            ChannelConfig::Bark {
+                server_url: "https://api.day.app".into(),
+                device_key: "device-key".into(),
+            },
+            "bark",
+        ),
+        (
+            ChannelConfig::Gotify {
+                server_url: "https://gotify.example.com".into(),
+                token: "app-token".into(),
+            },
+            "gotify",
+        ),
+        (
+            ChannelConfig::Qmsg {
+                server_url: "https://qmsg.example.com".into(),
+                key: "key".into(),
+                user_id: "42".into(),
+                bot_id: Some("10002".into()),
+            },
+            "qmsg",
+        ),
+        (
+            ChannelConfig::WxPusher {
+                app_token: Some("app-token".into()),
+                uid: "uid-1".into(),
+            },
+            "wxpusher",
+        ),
+        (
+            ChannelConfig::CustomWebhook {
+                url: "https://hooks.example.com/notify?source=downlink".into(),
+                headers: Vec::new(),
+                body_template: None,
+                content_type: None,
+            },
             "webhook",
         ),
     ];
 
-    for (input, _) in cases {
-        let config = ChannelConfig::from_url(input).unwrap();
+    for (config, expected) in cases {
         let mock = MockHttpClient::new(ok_response("{}"));
         let channel = channel_from_config(&config, Box::new(mock)).unwrap();
-        let expected = match config {
-            ChannelConfig::DiscordBot { .. } => "discord-bot",
-            ChannelConfig::ServerChan { .. } => "serverchan",
-            ChannelConfig::Bark { .. } => "bark",
-            ChannelConfig::Gotify { .. } => "gotify",
-            ChannelConfig::Qmsg { .. } => "qmsg",
-            ChannelConfig::WxPusher { .. } => "wxpusher",
-            ChannelConfig::CustomWebhook { .. } => "webhook",
-            _ => unreachable!("test input must select a new channel"),
-        };
         assert_eq!(channel.name(), expected);
     }
-}
-
-#[test]
-fn server_backends_and_webhook_options_parse_from_url() {
-    let bark = ChannelConfig::from_url("bark://device@send?server=https%3A%2F%2Fbark.example.com")
-        .unwrap();
-    assert!(matches!(
-        bark,
-        ChannelConfig::Bark { server_url, .. } if server_url == "https://bark.example.com/"
-    ));
-
-    let gotify = ChannelConfig::from_url("gotify://token@self.example.com:8443/base").unwrap();
-    assert!(matches!(
-        gotify,
-        ChannelConfig::Gotify { server_url, .. } if server_url == "https://self.example.com:8443/base"
-    ));
-
-    let webhook = ChannelConfig::from_url(
-        "webhook://hooks.example.com/notify?source=downlink&header.X-Token=abc&content_type=text%2Fplain",
-    )
-    .unwrap();
-    assert!(matches!(
-        &webhook,
-        ChannelConfig::CustomWebhook { url, headers, content_type, .. }
-            if url == "https://hooks.example.com/notify?source=downlink"
-                && headers == &vec![WebhookHeader {
-                    name: "X-Token".into(),
-                    value: "abc".into(),
-                }]
-                && content_type.as_deref() == Some("text/plain")
-    ));
 }
