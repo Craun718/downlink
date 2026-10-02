@@ -22,6 +22,15 @@ impl Engine {
         Self::from_channel(channel)
     }
 
+    /// Creates an engine from the JSON form of a channel configuration.
+    ///
+    /// This is the constructor intended for language bindings. It keeps the
+    /// binding boundary to JSON input, JSON output, and [`NotifyError`].
+    pub fn from_config_json(config_json: &str) -> Result<Self, NotifyError> {
+        let config = ChannelConfig::from_json(config_json)?;
+        Self::new(&config)
+    }
+
     fn from_channel(channel: Box<dyn Channel>) -> Result<Self, NotifyError> {
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
@@ -41,6 +50,20 @@ impl Engine {
     pub fn send(&self, message: &Message) -> Result<SendReceipt, NotifyError> {
         self.runtime
             .block_on(self.channel.send_with_fallback(message))
+    }
+
+    /// Sends a JSON-encoded message and returns its receipt as JSON.
+    ///
+    /// Language bindings should use this method instead of exposing Rust
+    /// channel trait objects, futures, or Tokio runtime types.
+    pub fn send_json(&self, message_json: &str) -> Result<String, NotifyError> {
+        let message = serde_json::from_str(message_json)
+            .map_err(|error| NotifyError::ConfigParse(format!("invalid JSON message: {error}")))?;
+        let receipt = self.send(&message)?;
+
+        serde_json::to_string(&receipt).map_err(|error| {
+            NotifyError::MessageConversion(format!("serialize send receipt: {error}"))
+        })
     }
 }
 
@@ -83,5 +106,39 @@ mod tests {
 
         assert_eq!(receipt.channel, "text");
         assert_eq!(receipt.raw_response.as_deref(), Some("plain body"));
+    }
+
+    #[test]
+    fn json_boundary_degrades_and_returns_json_receipt() {
+        let engine = Engine::from_channel(Box::new(TextChannel))
+            .expect("test channel must construct an engine");
+
+        let receipt = engine
+            .send_json(
+                r#"{
+                    "body": {
+                        "type": "card",
+                        "title": "Alert",
+                        "markdown": "plain **body**"
+                    }
+                }"#,
+            )
+            .expect("JSON send must succeed");
+
+        let receipt: serde_json::Value = serde_json::from_str(&receipt).unwrap();
+        assert_eq!(receipt["channel"], "text");
+        assert_eq!(receipt["raw_response"], "plain body");
+    }
+
+    #[test]
+    fn invalid_message_json_is_a_configuration_error() {
+        let engine = Engine::from_channel(Box::new(TextChannel))
+            .expect("test channel must construct an engine");
+
+        let error = engine
+            .send_json("{")
+            .expect_err("malformed JSON must be rejected");
+
+        assert!(matches!(error, NotifyError::ConfigParse(_)));
     }
 }
