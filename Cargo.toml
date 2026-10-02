@@ -20,10 +20,28 @@ reqwest = { version = "0.12.28", features = ["json"], optional = true }
 lettre = { version = "0.11.23", features = ["smtp-transport", "builder", "tokio1", "tokio1-native-tls"], optional = true }
 
 [features]
-default = ["default-client", "channel-dingtalk", "channel-feishu", "channel-telegram", "channel-discord"]
+default = [
+    "default-client",
+    "channel-dingtalk",
+    "channel-feishu",
+    "channel-telegram",
+    "channel-discord",
+    "channel-serverchan",
+    "channel-bark",
+    "channel-gotify",
+    "channel-qmsg",
+    "channel-wxpusher",
+    "channel-webhook",
+]
 default-client = ["dep:reqwest", "dep:tokio"]
 channel-dingtalk = []
 channel-feishu = []
 channel-telegram = []
 channel-discord = []
+channel-serverchan = []
+channel-bark = []
+channel-gotify = []
+channel-qmsg = []
+channel-wxpusher = []
+channel-webhook = []
 channel-smtp = ["dep:lettre"]
