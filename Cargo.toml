@@ -1,9 +1,13 @@
+[workspace]
+members = ["crates/markdown-plain-text"]
+
 [package]
 name = "notify-core"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+markdown-plain-text = { path = "crates/markdown-plain-text" }
 async-trait = "0.1.91"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"

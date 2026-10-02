@@ -1,5 +1,6 @@
 use crate::channel::NotifyError;
 use crate::message::{Message, MessageBody};
+use markdown_plain_text::markdown_to_plain_text;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Capabilities {
@@ -84,7 +85,7 @@ impl Capabilities {
                     if self.text =>
                 {
                     MessageBody::Text {
-                        text: markdown.clone(),
+                        text: markdown_to_plain_text(markdown),
                     }
                 }
                 MessageBody::Text { .. } if self.text => message.body.clone(),
@@ -145,7 +146,7 @@ mod tests {
         assert_eq!(
             plain.try_degrade(&message).unwrap().body,
             MessageBody::Text {
-                text: "**details**".into()
+                text: "details".into()
             }
         );
     }

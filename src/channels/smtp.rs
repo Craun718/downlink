@@ -8,6 +8,7 @@ use lettre::{
 use crate::capability::Capabilities;
 use crate::channel::{Channel, NotifyError, SendReceipt};
 use crate::message::{Message, MessageBody};
+use markdown_plain_text::markdown_to_plain_text;
 
 pub struct SmtpChannel {
     host: String,
@@ -54,8 +55,9 @@ impl SmtpChannel {
     fn body_for(&self, message: &Message) -> String {
         let text = match &message.body {
             MessageBody::Text { text } => text.clone(),
-            MessageBody::Markdown { text, .. } => text.clone(),
-            MessageBody::Card { markdown, .. } => markdown.clone(),
+            MessageBody::Markdown { text, .. } | MessageBody::Card { markdown: text, .. } => {
+                markdown_to_plain_text(text)
+            }
         };
         if message.mentions.is_empty() {
             return text;
@@ -134,4 +136,30 @@ impl SmtpChannel {
         .with_markdown()
         .with_card()
         .with_mentions(false, true, true);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn markdown_body_is_converted_to_plain_text() {
+        let channel = SmtpChannel::new(
+            "smtp.example.com".into(),
+            587,
+            "user".into(),
+            "password".into(),
+            "from@example.com".into(),
+            vec!["to@example.com".into()],
+        );
+        let message = Message::markdown(
+            "[**Service down**](https://example.com)",
+            Some("Alert".into()),
+        );
+
+        assert_eq!(
+            channel.body_for(&message),
+            "Service down (https://example.com)"
+        );
+    }
 }

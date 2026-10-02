@@ -11,11 +11,13 @@ use notify_core::{Channel, ChannelConfig, HttpRequest, Message, NotifyError};
 use serde_json::Value;
 use sha2::Sha256;
 
-const DINGTALK_WEBHOOK: &str =
-    "https://oapi.dingtalk.com/robot/send?access_token=test-token";
+const DINGTALK_WEBHOOK: &str = "https://oapi.dingtalk.com/robot/send?access_token=test-token";
 
 fn json_body(request: &HttpRequest) -> Value {
-    request.body.clone().expect("request must carry a JSON body")
+    request
+        .body
+        .clone()
+        .expect("request must carry a JSON body")
 }
 
 fn header<'a>(request: &'a HttpRequest, name: &str) -> Option<&'a str> {
@@ -72,8 +74,11 @@ async fn dingtalk_text_message_posts_text_payload() {
 async fn dingtalk_secret_signs_url_with_hmac() {
     let secret = "s3cret";
     let mock = MockHttpClient::new(ok_response(r#"{"errcode":0,"errmsg":"ok"}"#));
-    let channel =
-        DingTalkChannel::new(DINGTALK_WEBHOOK.into(), Some(secret.into()), Box::new(mock.clone()));
+    let channel = DingTalkChannel::new(
+        DINGTALK_WEBHOOK.into(),
+        Some(secret.into()),
+        Box::new(mock.clone()),
+    );
 
     channel.send(&Message::text("hello")).await.unwrap();
 
@@ -91,14 +96,19 @@ async fn dingtalk_secret_signs_url_with_hmac() {
 
 #[tokio::test]
 async fn dingtalk_provider_error_maps_errcode() {
-    let mock = MockHttpClient::new(ok_response(r#"{"errcode":310000,"errmsg":"sign not match"}"#));
+    let mock = MockHttpClient::new(ok_response(
+        r#"{"errcode":310000,"errmsg":"sign not match"}"#,
+    ));
     let channel = DingTalkChannel::new(DINGTALK_WEBHOOK.into(), None, Box::new(mock));
 
     let error = channel.send(&Message::text("hello")).await.unwrap_err();
 
     match error {
         NotifyError::Provider {
-            channel, code, message, ..
+            channel,
+            code,
+            message,
+            ..
         } => {
             assert_eq!(channel, "dingtalk");
             assert_eq!(code.as_deref(), Some("310000"));
@@ -173,7 +183,7 @@ async fn feishu_markdown_degrades_to_text() {
 
     let payload = json_body(&mock.requests()[0]);
     assert_eq!(payload["msg_type"], "text");
-    assert_eq!(payload["content"]["text"], "**details**");
+    assert_eq!(payload["content"]["text"], "details");
 }
 
 #[tokio::test]
@@ -222,7 +232,10 @@ async fn telegram_rejected_request_maps_to_provider_error() {
 
     match error {
         NotifyError::Provider {
-            channel, code, message, ..
+            channel,
+            code,
+            message,
+            ..
         } => {
             assert_eq!(channel, "telegram");
             assert_eq!(code.as_deref(), Some("400"));
@@ -250,9 +263,15 @@ async fn discord_text_posts_content_and_extracts_message_id() {
 #[tokio::test]
 async fn discord_card_posts_embed() {
     let mock = MockHttpClient::new(ok_response(r#"{"id":"9999"}"#));
-    let channel = DiscordChannel::new("https://discord.com/api/webhooks/1/abc".into(), Box::new(mock.clone()));
+    let channel = DiscordChannel::new(
+        "https://discord.com/api/webhooks/1/abc".into(),
+        Box::new(mock.clone()),
+    );
 
-    channel.send(&Message::card("Alert", "**details**")).await.unwrap();
+    channel
+        .send(&Message::card("Alert", "**details**"))
+        .await
+        .unwrap();
 
     let payload = json_body(&mock.requests()[0]);
     assert_eq!(payload["embeds"][0]["title"], "Alert");
@@ -262,7 +281,10 @@ async fn discord_card_posts_embed() {
 #[tokio::test]
 async fn discord_http_error_keeps_channel_context() {
     let mock = MockHttpClient::new(status_response(404, r#"{"message": "Unknown Webhook"}"#));
-    let channel = DiscordChannel::new("https://discord.com/api/webhooks/1/abc".into(), Box::new(mock));
+    let channel = DiscordChannel::new(
+        "https://discord.com/api/webhooks/1/abc".into(),
+        Box::new(mock),
+    );
 
     let error = channel.send(&Message::text("hello")).await.unwrap_err();
 
@@ -279,9 +301,8 @@ fn config_url_and_json_forms_parse_consistently() {
             if webhook_url.contains("access_token=tok123") && secret == "abc"
     ));
 
-    let smtp =
-        ChannelConfig::from_url("smtp://user:pass@smtp.example.com:465?to=a@b.com,c@d.com")
-            .unwrap();
+    let smtp = ChannelConfig::from_url("smtp://user:pass@smtp.example.com:465?to=a@b.com,c@d.com")
+        .unwrap();
     assert!(matches!(
         &smtp,
         ChannelConfig::Smtp { host, port: 465, username, password, .. }
@@ -291,7 +312,12 @@ fn config_url_and_json_forms_parse_consistently() {
     let telegram =
         ChannelConfig::from_json(r#"{"channel":"telegram","bot_token":"123:ABC","chat_id":"42"}"#)
             .unwrap();
-    assert!(telegram.to_json().unwrap().contains(r#""bot_token":"123:ABC""#));
+    assert!(
+        telegram
+            .to_json()
+            .unwrap()
+            .contains(r#""bot_token":"123:ABC""#)
+    );
 }
 
 #[test]
@@ -307,7 +333,11 @@ fn test_secrets_use_separate_keys_and_build_urls_at_runtime() {
     let dingtalk = secrets.dingtalk.as_ref().unwrap();
     assert_eq!(dingtalk.access_token, "tok");
     assert_eq!(dingtalk.secret.as_deref(), Some("s"));
-    let ChannelConfig::DingTalk { webhook_url, secret } = dingtalk.to_config() else {
+    let ChannelConfig::DingTalk {
+        webhook_url,
+        secret,
+    } = dingtalk.to_config()
+    else {
         panic!("expected dingtalk config");
     };
     assert_eq!(
@@ -318,7 +348,11 @@ fn test_secrets_use_separate_keys_and_build_urls_at_runtime() {
 
     let feishu = secrets.feishu.as_ref().unwrap();
     assert_eq!(feishu.hook_id, "hook-1");
-    let ChannelConfig::Feishu { webhook_url, secret } = feishu.to_config() else {
+    let ChannelConfig::Feishu {
+        webhook_url,
+        secret,
+    } = feishu.to_config()
+    else {
         panic!("expected feishu config");
     };
     assert_eq!(
@@ -335,10 +369,7 @@ fn test_secrets_use_separate_keys_and_build_urls_at_runtime() {
     let ChannelConfig::Discord { webhook_url } = discord.to_config() else {
         panic!("expected discord config");
     };
-    assert_eq!(
-        webhook_url,
-        "https://discord.com/api/webhooks/999/wt"
-    );
+    assert_eq!(webhook_url, "https://discord.com/api/webhooks/999/wt");
 }
 
 #[test]
@@ -349,6 +380,9 @@ fn example_secrets_file_stays_parseable() {
     let secrets: common::TestSecrets = serde_json::from_str(&raw).unwrap();
     assert_eq!(secrets.dingtalk.unwrap().access_token, "YOUR_ACCESS_TOKEN");
     assert_eq!(secrets.feishu.unwrap().hook_id, "YOUR_HOOK_ID");
-    assert_eq!(secrets.telegram.unwrap().bot_token, "123456:ABC-DEF_YOUR_BOT_TOKEN");
+    assert_eq!(
+        secrets.telegram.unwrap().bot_token,
+        "123456:ABC-DEF_YOUR_BOT_TOKEN"
+    );
     assert_eq!(secrets.discord.unwrap().webhook_id, "YOUR_WEBHOOK_ID");
 }
