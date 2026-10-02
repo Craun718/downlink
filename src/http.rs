@@ -128,7 +128,10 @@ pub mod default {
                 builder = builder.header(key.as_str(), value.as_str());
             }
             if let Some(body) = &request.body {
-                builder = builder.json(body);
+                let bytes = serde_json::to_vec(body).map_err(|error| {
+                    NotifyError::MessageConversion(format!("serialize request body: {error}"))
+                })?;
+                builder = builder.body(bytes);
             }
             let response = builder
                 .send()
