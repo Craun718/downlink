@@ -21,21 +21,54 @@
 - 远期通过 WASM 支持浏览器/Electron 场景
 - 不依赖单平台 API，核心逻辑全部平台无关
 
-### 首发渠道
+### 当前渠道
 
 | 渠道 | 接入方式 | 说明 |
 |------|----------|------|
-| 钉钉 | 群机器人 Webhook | 用户自建机器人，填 webhook + 加签 secret |
-| 飞书 | 自定义机器人 Webhook | 用户自建，填 webhook + 签名 secret |
-| Telegram | Bot API | 用户找 BotFather 建 bot，填 token |
-| Discord | 频道 Webhook | 优先于 bot token，用户配置成本最低 |
-| 邮箱 | SMTP | 唯一需要完整客户端实现的渠道 |
+| 钉钉 | 群机器人 Webhook | 支持加签 secret |
+| 飞书 | 自定义机器人 Webhook | 支持签名 secret |
+| Telegram | Bot API | Bot token + chat id |
+| Discord | Webhook | 频道 Webhook，配置成本最低 |
+| Discord Bot | Bot API 私聊 | Bot token + 用户 id，先创建私聊频道再发送 |
+| 邮箱 | SMTP | 独立 feature：`channel-smtp` |
+| Server酱 | HTTP API | Send Key，支持 `sctapi` 与 `ft07` 域名 |
+| Bark | HTTP API | 设备 Key，支持官方服务与自建服务器 |
+| Gotify | HTTP API | App token，支持自建服务器与子路径 |
+| Qmsg | HTTP API | Key + QQ，可选指定机器人 |
+| WxPusher | HTTP API | 应用 token + UID，或 simple-push token |
+| 自定义 Webhook | HTTP JSON POST | 支持自定义 header、content-type 与 JSON body 模板 |
+
+新通知渠道默认随 `default` feature 编译；SMTP 因依赖完整邮件客户端而保持为可选
+feature。宿主可以按渠道裁剪依赖，例如只启用 `channel-telegram`。
+
+### URL Schema 示例
+
+```text
+dingtalk://ACCESS_TOKEN?secret=SECRET
+feishu://HOOK_ID?secret=SECRET
+telegram://BOT_TOKEN/CHAT_ID
+discord://WEBHOOK_ID/WEBHOOK_TOKEN
+discord-bot://BOT_TOKEN@send?user_id=USER_ID
+smtp://user:password@smtp.example.com:465?to=a@b.com,c@d.com
+serverchan://SEND_KEY@send
+bark://DEVICE_KEY@send?server=https%3A%2F%2Fbark.example.com
+gotify://TOKEN@gotify.example.com
+qmsg://KEY@send?user_id=QQ&bot=BOT_QQ
+wxpusher://UID?app_token=APP_TOKEN
+webhook://hooks.example.com/path?header.X-Token=secret&content_type=application%2Fjson
+```
+
+`bark://DEVICE_KEY@send`、`qmsg://KEY@send` 使用各自官方默认服务；
+`gotify` 需要显式提供自建服务器。`webhook` 默认使用 HTTPS，可用
+`scheme=http` 改为 HTTP；`template`/`body` 传入 JSON 模板，正文内支持
+`{title}`、`{message}`、`{content}` 与 `{priority}` 占位符。
 
 ### 架构原则
 
 - **统一消息模型**：文本 / Markdown / 卡片 / @ / 优先级，与渠道无关
 - **渠道适配器 trait**：每个渠道一个 `send` 实现，按 trait 注册
 - **能力声明与统一降级**：库级 `send(channel, message)` 和 `Channel::send_with_fallback` 统一协商消息能力；卡片优先降级为 Markdown，再降级为纯文本，不支持的 @ 类型会被移除。无可用正文格式时返回 `UnsupportedCapability`
+- **Markdown 纯文本降级**：由内置零依赖 crate `markdown-plain-text` 剥离常用 Markdown 语法，保留正文、链接目标和代码内容
 - **配置驱动**：渠道配置采用 URL schema（参考 Apprise）与 JSON 双形态，便于序列化、导入导出
 
 ### 密钥与安全
@@ -48,4 +81,4 @@
 
 - 不做消息接收、双向交互、按钮回调（远期再议）
 - 不做密钥托管、云端账号体系
-- 不追求 Apprise 级别的渠道数量，首发只做上表五个，做深做稳
+- 不追求 Apprise 级别的渠道数量；优先覆盖用户高频渠道并保持每个适配器的错误语义与能力降级一致
