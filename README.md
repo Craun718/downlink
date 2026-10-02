@@ -1,4 +1,4 @@
-# notify-core
+# downlink
 
 通知聚合协议的 Rust core SDK：一套统一协议，覆盖多个通知渠道，跨平台复用。
 
@@ -99,3 +99,7 @@ panic = "abort"
 ```
 
 实测效果（Bark 渠道最小示例）：默认 release 约 4.4 MB → 优化后约 1.2 MB。
+
+## 许可
+
+MIT OR Apache-2.0 双许可，任选其一。

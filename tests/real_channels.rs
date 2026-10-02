@@ -3,12 +3,12 @@ mod common;
 #[cfg(feature = "default-client")]
 mod real {
     use super::common::TestSecrets;
-    use notify_core::{ChannelConfig, Message, ReqwestClient, channel_from_config};
+    use downlink::{ChannelConfig, Message, ReqwestClient, channel_from_config};
 
     async fn send_via(config: ChannelConfig, label: &str) {
         let channel = channel_from_config(&config, Box::new(ReqwestClient::new()))
             .expect("channel config must construct a channel");
-        let message = Message::text(format!("notify-core real test via {label}"));
+        let message = Message::text(format!("downlink real test via {label}"));
         let receipt = channel
             .send_with_fallback(&message)
             .await

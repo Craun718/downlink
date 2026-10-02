@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use notify_core::{ChannelConfig, HttpClient, HttpRequest, HttpResponse, NotifyError};
+use downlink::{ChannelConfig, HttpClient, HttpRequest, HttpResponse, NotifyError};
 use serde::Deserialize;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};

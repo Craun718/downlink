@@ -3,11 +3,11 @@ mod common;
 use base64::Engine;
 use common::{MockHttpClient, ok_response, status_response};
 use hmac::{Hmac, Mac};
-use notify_core::channels::dingtalk::DingTalkChannel;
-use notify_core::channels::discord::DiscordChannel;
-use notify_core::channels::feishu::FeishuChannel;
-use notify_core::channels::telegram::TelegramChannel;
-use notify_core::{Channel, ChannelConfig, HttpRequest, Message, NotifyError};
+use downlink::channels::dingtalk::DingTalkChannel;
+use downlink::channels::discord::DiscordChannel;
+use downlink::channels::feishu::FeishuChannel;
+use downlink::channels::telegram::TelegramChannel;
+use downlink::{Channel, ChannelConfig, HttpRequest, Message, NotifyError};
 use serde_json::Value;
 use sha2::Sha256;
 
@@ -123,7 +123,7 @@ async fn dingtalk_card_degrades_to_markdown() {
     let mock = MockHttpClient::new(ok_response(r#"{"errcode":0,"errmsg":"ok"}"#));
     let channel = DingTalkChannel::new(DINGTALK_WEBHOOK.into(), None, Box::new(mock.clone()));
 
-    notify_core::send(&channel, &Message::card("Alert", "**details**"))
+    downlink::send(&channel, &Message::card("Alert", "**details**"))
         .await
         .unwrap();
 
@@ -177,7 +177,7 @@ async fn feishu_markdown_degrades_to_text() {
     let webhook = "https://open.feishu.cn/open-apis/bot/v2/hook/test-hook";
     let channel = FeishuChannel::new(webhook.into(), None, Box::new(mock.clone()));
 
-    notify_core::send(&channel, &Message::markdown("**details**", None))
+    downlink::send(&channel, &Message::markdown("**details**", None))
         .await
         .unwrap();
 

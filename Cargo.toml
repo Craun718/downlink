@@ -2,9 +2,15 @@
 members = ["crates/markdown-plain-text"]
 
 [package]
-name = "notify-core"
+name = "downlink"
 version = "0.1.0"
 edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Craun718/downlink"
+readme = "README.md"
+description = "One-way notification aggregation SDK with unified URL schemas"
+keywords = ["notification", "dingtalk", "feishu", "telegram", "discord"]
+categories = ["api-bindings"]
 
 [dependencies]
 markdown-plain-text = { path = "crates/markdown-plain-text" }

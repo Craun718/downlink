@@ -52,7 +52,7 @@ impl BarkChannel {
             "title": self.title_for(message),
             "body": message.as_text(),
             "device_key": self.device_key,
-            "group": "notify-core",
+            "group": "downlink",
         })
     }
 }

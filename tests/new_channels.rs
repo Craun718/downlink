@@ -1,15 +1,15 @@
 mod common;
 
 use common::{MockHttpClient, ok_response};
-use notify_core::channels::bark::BarkChannel;
-use notify_core::channels::discord::DiscordBotChannel;
-use notify_core::channels::gotify::GotifyChannel;
-use notify_core::channels::qmsg::QmsgChannel;
-use notify_core::channels::serverchan::ServerChanChannel;
-use notify_core::channels::webhook::CustomWebhookChannel;
-use notify_core::channels::wxpusher::WxPusherChannel;
-use notify_core::config::WebhookHeader;
-use notify_core::{
+use downlink::channels::bark::BarkChannel;
+use downlink::channels::discord::DiscordBotChannel;
+use downlink::channels::gotify::GotifyChannel;
+use downlink::channels::qmsg::QmsgChannel;
+use downlink::channels::serverchan::ServerChanChannel;
+use downlink::channels::webhook::CustomWebhookChannel;
+use downlink::channels::wxpusher::WxPusherChannel;
+use downlink::config::WebhookHeader;
+use downlink::{
     Channel, ChannelConfig, HttpRequest, Mention, Message, NotifyError, Priority,
     channel_from_config,
 };
@@ -107,7 +107,7 @@ async fn bark_posts_json_payload() {
     assert_eq!(payload["title"], "Alert");
     assert_eq!(payload["body"], "details");
     assert_eq!(payload["device_key"], "device-key");
-    assert_eq!(payload["group"], "notify-core");
+    assert_eq!(payload["group"], "downlink");
     assert_eq!(receipt.message_id.as_deref(), Some("42"));
 }
 
@@ -411,7 +411,7 @@ fn new_channel_url_schemas_parse() {
         ("qmsg://key@send?user_id=42&bot=10002", "qmsg"),
         ("wxpusher://uid-1?app_token=app-token", "wxpusher"),
         (
-            "webhook://hooks.example.com/notify?source=notify-core",
+            "webhook://hooks.example.com/notify?source=downlink",
             "webhook",
         ),
     ];
@@ -450,13 +450,13 @@ fn server_backends_and_webhook_options_parse_from_url() {
     ));
 
     let webhook = ChannelConfig::from_url(
-        "webhook://hooks.example.com/notify?source=notify-core&header.X-Token=abc&content_type=text%2Fplain",
+        "webhook://hooks.example.com/notify?source=downlink&header.X-Token=abc&content_type=text%2Fplain",
     )
     .unwrap();
     assert!(matches!(
         &webhook,
         ChannelConfig::CustomWebhook { url, headers, content_type, .. }
-            if url == "https://hooks.example.com/notify?source=notify-core"
+            if url == "https://hooks.example.com/notify?source=downlink"
                 && headers == &vec![WebhookHeader {
                     name: "X-Token".into(),
                     value: "abc".into(),
