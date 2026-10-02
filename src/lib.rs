@@ -8,12 +8,16 @@ pub mod capability;
 pub mod channel;
 pub mod channels;
 pub mod config;
+#[cfg(feature = "default-client")]
+pub mod engine;
 pub mod http;
 pub mod message;
 
 pub use capability::Capabilities;
 pub use channel::{Channel, ErrorKind, NotifyError, ResponseBody, SendReceipt};
 pub use config::{ChannelConfig, WebhookHeader};
+#[cfg(feature = "default-client")]
+pub use engine::Engine;
 pub use http::{HttpClient, HttpRequest, HttpResponse};
 pub use message::{Mention, Message, MessageBody, Priority};
 
